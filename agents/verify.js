@@ -7,6 +7,7 @@ const EXPECTED = {
   "02-truncate-length": { state: "Paid", worker: "worker-cid", price: "0.5" },
   "03-duration-compound": { state: "Paid", worker: "worker-ace", price: "1.05" },
   "04-near-precision": { state: "Refunded" },
+  "05-semver-precedence": { state: "Paid", worker: "worker-ace", price: "1.4" },
 };
 const GAS_ALLOWANCE_PER_BID = yocto("0.01");
 
