@@ -1,0 +1,2 @@
+{ "title": "truncate returns text longer than max", "file": "src/truncate.js", "budget": "1",
+  "details": "truncate(\"abcdefghij\", 8) returns \"abcdefgh...\" (11 chars). The result, including the \"...\", must never be longer than max. Expected \"abcde...\"." }

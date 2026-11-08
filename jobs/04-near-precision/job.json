@@ -1,0 +1,2 @@
+{ "title": "formatNear rounds 0.999 NEAR up to 1.00", "file": "src/money.js", "budget": "0.5",
+  "details": "formatNear goes through Number, so big yocto amounts lose precision and 0.999 NEAR shows as \"1.00 NEAR\". It must never round up: cut to 2 decimals using BigInt. formatNear(\"999999999999999999999999\") should be \"0.99 NEAR\" and formatNear(\"123456789012345678901234567890\") should be \"123456.78 NEAR\"." }

@@ -1,0 +1,2 @@
+{ "title": "slugify drops digits", "file": "src/slugify.js", "budget": "1",
+  "details": "slugify(\"Top 10 Tips\") returns \"top-tips\". It should keep digits and return \"top-10-tips\"." }

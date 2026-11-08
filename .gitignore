@@ -1,0 +1,5 @@
+decisions.tsv
+node_modules/
+target/
+.env
+*.log

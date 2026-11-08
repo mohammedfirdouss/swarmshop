@@ -1,0 +1,2 @@
+{ "title": "parseDuration rejects 1h30m", "file": "src/duration.js", "budget": "1.5",
+  "details": "parseDuration(\"1h30m\") throws \"bad duration\". Compound durations like \"1h30m\" and \"2m5s\" should add up (5400 and 125 seconds). Garbage like \"abc\" or \"\" must still throw." }
