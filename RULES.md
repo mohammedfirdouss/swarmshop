@@ -15,9 +15,9 @@ The account names above are examples. The contract reads its own account id, so 
 
 ## One job, start to end
 
-1. **Post.** The customer calls `post_job(title, details, minutes)` and attaches the budget (at least 0.1 NEAR). The job is `Open` until the deadline.
+1. **Post.** The customer calls `post_job(title, details, acceptance_test, minutes)` and attaches the budget (at least 0.1 NEAR). The job is `Open` until the deadline.
 2. **Bid.** Each worker calls `place_bid(job_id, price)` while the job is `Open`. The price must be more than 0 and no more than the budget. A second bid from the same worker replaces the first.
-3. **Fix.** Workers write their patches off-chain. The foreman applies each one to a fresh copy of the repo and runs the test suite.
+3. **Fix.** Workers write their patches off-chain. The foreman applies each one to a fresh copy of the repo and runs the acceptance test the customer posted with the job.
 4. **Pay.** Among the workers whose patch passes, the foreman picks the lowest bid as recorded on-chain. If two bids tie, the one that reached the chain first wins. Then it calls `award(job_id, worker, patch_sha256)`. The contract sends that worker its bid price. The rest of the budget stays with the shop as margin. The job becomes `Paid`.
 5. **Refund.** If no patch passes, the foreman calls `refund(job_id)`. After the deadline the customer can also call it. The full budget goes back to the customer. The job becomes `Refunded`.
 

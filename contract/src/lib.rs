@@ -4,6 +4,7 @@ use near_sdk::{env, near, require, AccountId, NearToken, PanicOnDefault, Promise
 const MIN_BUDGET: NearToken = NearToken::from_millinear(100);
 const MAX_TITLE: usize = 120;
 const MAX_DETAILS: usize = 4000;
+const MAX_TEST: usize = 6000;
 const NS_PER_MINUTE: u64 = 60_000_000_000;
 
 #[near(serializers = [json, borsh])]
@@ -33,6 +34,7 @@ pub struct Job {
     pub customer: AccountId,
     pub title: String,
     pub details: String,
+    pub acceptance_test: String,
     pub budget: NearToken,
     pub deadline_ns: u64,
     pub bids: Vec<Bid>,
@@ -80,11 +82,15 @@ impl Shop {
     }
 
     #[payable]
-    pub fn post_job(&mut self, title: String, details: String, minutes: u64) -> u64 {
+    pub fn post_job(&mut self, title: String, details: String, acceptance_test: String, minutes: u64) -> u64 {
         let budget = env::attached_deposit();
         require!(budget >= MIN_BUDGET, "budget must be at least 0.1 NEAR");
         require!(!title.is_empty() && title.len() <= MAX_TITLE, "title must be 1-120 bytes");
         require!(details.len() <= MAX_DETAILS, "details must be at most 4000 bytes");
+        require!(
+            !acceptance_test.is_empty() && acceptance_test.len() <= MAX_TEST,
+            "acceptance_test must be 1-6000 bytes"
+        );
         require!((1..=7 * 24 * 60).contains(&minutes), "minutes must be 1-10080");
 
         let id = self.next_id;
@@ -94,6 +100,7 @@ impl Shop {
             customer: env::predecessor_account_id(),
             title,
             details,
+            acceptance_test,
             budget,
             deadline_ns: env::block_timestamp() + minutes * NS_PER_MINUTE,
             bids: Vec::new(),
@@ -220,7 +227,7 @@ mod tests {
         as_caller("shop.testnet", NearToken::from_near(0), 0);
         let mut shop = Shop::new(acc("foreman.shop.testnet"));
         as_caller("alice.testnet", NearToken::from_near(1), 0);
-        shop.post_job("Fix slugify".into(), "it drops digits".into(), 30);
+        shop.post_job("Fix slugify".into(), "it drops digits".into(), "test()".into(), 30);
         shop
     }
 
@@ -342,6 +349,28 @@ mod tests {
     fn tiny_budgets_are_rejected() {
         let mut shop = shop_with_job();
         as_caller("alice.testnet", NearToken::from_millinear(10), 0);
-        shop.post_job("t".into(), "d".into(), 30);
+        shop.post_job("t".into(), "d".into(), "test()".into(), 30);
+    }
+
+    #[test]
+    #[should_panic(expected = "acceptance_test must be 1-6000 bytes")]
+    fn an_empty_acceptance_test_is_rejected() {
+        let mut shop = shop_with_job();
+        as_caller("alice.testnet", NearToken::from_near(1), 0);
+        shop.post_job("t".into(), "d".into(), String::new(), 30);
+    }
+
+    #[test]
+    #[should_panic(expected = "acceptance_test must be 1-6000 bytes")]
+    fn an_oversized_acceptance_test_is_rejected() {
+        let mut shop = shop_with_job();
+        as_caller("alice.testnet", NearToken::from_near(1), 0);
+        shop.post_job("t".into(), "d".into(), "x".repeat(6001), 30);
+    }
+
+    #[test]
+    fn the_acceptance_test_is_stored_with_the_job() {
+        let shop = shop_with_job();
+        assert_eq!(shop.get_job(0).unwrap().acceptance_test, "test()");
     }
 }
