@@ -7,7 +7,7 @@
     "setup": "node agents/setup.js",
     "shop": "node agents/shop.js",
     "verify": "node agents/verify.js",
-    "test": "node --test agents/live.test.js"
+    "test": "node --test agents/live.test.js agents/pick.test.js"
   },
   "dependencies": {
     "near-api-js": "7.3.1"

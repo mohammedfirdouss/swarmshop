@@ -1,6 +1,6 @@
 import { parseArgs } from "node:util";
-import { judge, loadJobs, sha256 } from "./jobs.js";
-import { accounts, call, explorer, near } from "./near.js";
+import { judge, loadJobs, pickWinner, sha256 } from "./jobs.js";
+import { accounts, call, explorer, near, view } from "./near.js";
 import { makeWorkers } from "./workers.js";
 
 const DEADLINE_MINUTES = 30;
@@ -23,6 +23,14 @@ async function attempt(worker, job) {
   }
 }
 
+async function chainBids(jobId, passing) {
+  for (let tries = 1; ; tries++) {
+    const { bids } = await view(shop, "get_job", { job_id: jobId });
+    if (tries === 3 || passing.every((r) => bids.some((b) => b.worker === r.account))) return bids;
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+  }
+}
+
 console.log(`SwarmShop on ${shop} (mode: ${values.mode})\n`);
 for (const spec of loadJobs()) {
   const post = await call(customer, shop, "post_job", { title: spec.title, details: spec.details, minutes: DEADLINE_MINUTES }, spec.budget);
@@ -36,9 +44,10 @@ for (const spec of loadJobs()) {
     console.log(`  ${r.worker.name.padEnd(12)} ${price.padEnd(16)} ${r.note.padEnd(12)} ${r.bidTx ? explorer(r.bidTx.hash) : ""}`);
   }
 
-  const winner = results.filter((r) => r.pass).sort((a, b) => (a.price < b.price ? -1 : a.price > b.price ? 1 : 0))[0];
+  const passing = results.filter((r) => r.pass).map((r) => ({ ...r, account: workerAccounts[r.worker.name] }));
+  const winner = pickWinner(passing, await chainBids(job.id, passing));
   if (winner) {
-    const tx = await call(foreman, shop, "award", { job_id: job.id, worker: workerAccounts[winner.worker.name], patch_sha256: sha256(winner.patch) });
+    const tx = await call(foreman, shop, "award", { job_id: job.id, worker: winner.account, patch_sha256: sha256(winner.patch) });
     console.log(`  winner   ${winner.worker.name} paid ${near(winner.price)} NEAR, shop keeps ${near(job.budget - winner.price)} NEAR`);
     console.log(`  awarded  ${explorer(tx.hash)}\n`);
   } else {

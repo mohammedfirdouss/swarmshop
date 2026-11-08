@@ -43,3 +43,11 @@ export function judge(job, content) {
     rmSync(dir, { recursive: true, force: true });
   }
 }
+
+export function pickWinner(passing, chainBids) {
+  const ranked = new Map(chainBids.map((bid, order) => [bid.worker, { price: BigInt(bid.price), order }]));
+  return passing
+    .filter((r) => ranked.has(r.account))
+    .map((r) => ({ ...r, ...ranked.get(r.account) }))
+    .sort((a, b) => (a.price < b.price ? -1 : a.price > b.price ? 1 : a.order - b.order))[0];
+}
