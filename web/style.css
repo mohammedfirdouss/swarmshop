@@ -126,6 +126,17 @@ pre { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
 .note.good { color: var(--good); }
 .field input:invalid:not(:placeholder-shown), .field textarea:invalid:not(:placeholder-shown) { border-color: var(--bad); }
 
+.payer { display: grid; gap: 8px; padding: 12px; border: 1px dashed var(--line-strong); border-radius: 10px; font-size: 13px; }
+.payer .lead { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.payer .lead b { font-weight: 600; }
+.payer .lead .mono { overflow-wrap: anywhere; }
+.payer .alt { display: grid; gap: 8px; }
+.payer .alt summary { font-size: 13px; }
+.payer .alt .fields { display: grid; gap: 8px; padding: 10px; }
+.payer .alt input { width: 100%; border: 1px solid var(--line-strong); border-radius: 8px; padding: 7px 10px; background: var(--surface); font-family: var(--mono); font-size: 12.5px; }
+.payer .err { color: var(--bad); }
+.linkish { background: none; border: 0; padding: 0; color: var(--muted); text-decoration: underline; cursor: pointer; font-size: 13px; }
+
 .workers { display: grid; gap: 10px; }
 .worker { position: relative; display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 4px 12px; padding: 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); }
 .worker .avatar { grid-row: 1 / span 3; width: 44px; height: 44px; }

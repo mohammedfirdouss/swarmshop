@@ -2,6 +2,7 @@ const EXPLORER = "https://testnet.nearblocks.io";
 const NEAR_API = "https://esm.sh/near-api-js@7.3.1";
 const DEFAULT_RPC = "https://test.rpc.fastnear.com";
 const STORE_KEY = "swarmshop.account";
+const POSTS_KEY = "swarmshop.posts";
 const YOCTO = 10n ** 24n;
 const GAS = 30_000_000_000_000n;
 const POLL_MS = 5000;
@@ -70,7 +71,7 @@ const PHASE_CHIP = { Posted: "chip-wait", Bidding: "chip-wait", Testing: "chip-w
 
 function workerActivity(w, jobs) {
   for (const job of jobs) {
-    if (job.status.state !== "Open" || !Object.keys(job.work ?? {}).length) continue;
+    if (job.status.state !== "Open" || job.phase === "settled" || !Object.keys(job.work ?? {}).length) continue;
     const work = job.work[w.name] ?? {};
     if (work.test) return { busy: true, label: `Tests ${work.test.pass ? "passed" : "failed"} on #${job.id}. Waiting for the verdict.` };
     if (work.patch) return { busy: true, label: `Patch in on #${job.id}. Under test.` };
@@ -190,7 +191,7 @@ function renderJob(job, swarm, examples) {
     </div>
     <ol class="timeline">
       ${step("done", "Posted", clock(ev("job")?.at),
-        `<p><b>${near(job.budget)} Ⓝ</b> locked in escrow. ${txLink(job.postTx ?? ev("job")?.tx, "post transaction")}</p>
+        `<p><b>${near(job.budget)} Ⓝ</b> locked in escrow. ${txLink(job.postTx ?? ev("job")?.tx ?? postStore.get()?.[job.id], "post transaction")}</p>
          <p>${esc(job.details)}</p>
          ${job.acceptance_test ? details(`${job.id}:accept`, "Acceptance test", `<pre>${esc(job.acceptance_test)}</pre>`) : ""}`)}
       ${step(bidState, `Bids <span class="muted">${bidsDone} of ${rows.length}</span>`, bidWhen, `<div class="lines">${bidLines.join("")}</div>`)}
@@ -244,33 +245,60 @@ async function refresh() {
   }
 }
 
-const storage = {
-  get() { try { return JSON.parse(localStorage.getItem(STORE_KEY)); } catch { return null; } },
-  set(v) { try { localStorage.setItem(STORE_KEY, JSON.stringify(v)); } catch { /* storage blocked: the account lives for this page view only */ } },
-};
-let account = storage.get();
+const stored = (key) => ({
+  get() { try { return JSON.parse(localStorage.getItem(key)); } catch { return null; } },
+  set(v) { try { localStorage.setItem(key, JSON.stringify(v)); } catch {} },
+});
+const accountStore = stored(STORE_KEY);
+const postStore = stored(POSTS_KEY);
+let account = accountStore.get();
 let balance = null;
+let accountError = "";
 const rpcUrl = () => new URL(state?.rpc ?? DEFAULT_RPC, location.href).href;
+
+async function viewBalance(accountId) {
+  const res = await fetch(rpcUrl(), { method: "POST", headers: { "content-type": "application/json" },
+    body: JSON.stringify({ jsonrpc: "2.0", id: "b", method: "query", params: { request_type: "view_account", finality: "final", account_id: accountId } }) });
+  const body = await res.json();
+  if (body.error) throw new Error(body.error.cause?.name ?? body.error.message ?? "RPC error");
+  return body.result.amount;
+}
 
 async function refreshBalance() {
   if (!account || !state) return;
-  try {
-    const res = await fetch(rpcUrl(), { method: "POST", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ jsonrpc: "2.0", id: "b", method: "query", params: { request_type: "view_account", finality: "final", account_id: account.accountId } }) });
-    const body = await res.json();
-    balance = body.result?.amount ?? null;
-  } catch { balance = null; }
+  try { balance = await viewBalance(account.accountId); } catch { balance = null; }
   renderAccount();
 }
 
 function renderAccount() {
-  const el = $("account");
-  if (!account) {
-    el.innerHTML = `<button id="get-account" class="btn btn-small" type="button">Get a free testnet account</button>`;
-    $("get-account").onclick = getAccount;
-    return;
-  }
-  el.innerHTML = `<div class="who"><b>${balance === null ? "…" : `${near(balance)} Ⓝ`}</b>${acctLink(account.accountId)}</div>`;
+  const bal = balance === null ? "…" : `${near(balance)} Ⓝ`;
+  const typed = { id: $("acct-id")?.value ?? "", key: $("acct-key")?.value ?? "" };
+  $("account").innerHTML = account
+    ? `<div class="who"><b>${bal}</b>${acctLink(account.accountId)}</div>`
+    : `<button id="get-account-top" class="btn btn-small" type="button">Get a free testnet account</button>`;
+  $("get-account-top")?.addEventListener("click", getAccount);
+  $("payer").innerHTML = account
+    ? `<div class="lead"><span>Paying from <b class="mono">${esc(account.accountId)}</b> · ${bal}</span><button id="forget-account" class="linkish" type="button">change account</button></div>`
+    : `<div class="lead"><span>You need a testnet account to pay for the job.</span><button id="get-account" class="btn btn-small" type="button">Get a free testnet account</button></div>
+       ${accountError ? `<div class="err">${esc(accountError)}</div>` : ""}
+       <details class="alt"${accountError ? " open" : ""}><summary><span>Use an existing testnet account</span></summary>
+         <div class="fields">
+           <input id="acct-id" value="${esc(typed.id)}" placeholder="you.testnet" autocomplete="off" spellcheck="false" aria-label="Account id">
+           <input id="acct-key" value="${esc(typed.key)}" placeholder="ed25519:…" autocomplete="off" spellcheck="false" aria-label="Private key">
+           <button id="use-account" class="btn btn-small" type="button">Use this account</button>
+         </div></details>`;
+  $("get-account")?.addEventListener("click", getAccount);
+  $("use-account")?.addEventListener("click", useAccount);
+  $("forget-account")?.addEventListener("click", () => { account = null; balance = null; accountStore.set(null); renderAccount(); });
+}
+
+function adopt(next) {
+  account = next;
+  accountError = "";
+  balance = null;
+  accountStore.set(account);
+  renderAccount();
+  refreshBalance();
 }
 
 async function getAccount(ev) {
@@ -279,18 +307,29 @@ async function getAccount(ev) {
   btn.textContent = "Creating your account…";
   try {
     const res = await fetch("/api/accounts", { method: "POST" });
-    const body = await res.json();
+    const body = await res.json().catch(() => ({}));
     if (!res.ok || !body.accountId) throw new Error(body.error ?? `accounts ${res.status}`);
-    account = { accountId: body.accountId, privateKey: body.privateKey };
-    storage.set(account);
-    renderAccount();
-    refreshBalance();
+    adopt({ accountId: body.accountId, privateKey: body.privateKey });
     note("Your testnet account is ready and funded by the faucet. Post a job.", "good");
   } catch (e) {
-    btn.disabled = false;
-    btn.textContent = "Get a free testnet account";
-    note(`Could not create an account: ${e.message}`, "bad");
+    accountError = `Could not create an account: ${e.message}`;
+    renderAccount();
   }
+}
+
+async function useAccount() {
+  const accountId = $("acct-id").value.trim(), privateKey = $("acct-key").value.trim();
+  if (!accountId || !/^ed25519:[1-9A-HJ-NP-Za-km-z]{80,90}$/.test(privateKey)) {
+    accountError = "Enter the account id and its ed25519 private key (the long string starting with ed25519:).";
+    return renderAccount();
+  }
+  try {
+    await viewBalance(accountId);
+  } catch (e) {
+    accountError = `Could not find ${accountId} on testnet: ${e.message}`;
+    return renderAccount();
+  }
+  adopt({ accountId, privateKey });
 }
 
 function note(text, kind = "") {
@@ -308,7 +347,7 @@ async function loadExamples() {
   for (const e of examples) {
     const opt = document.createElement("option");
     opt.value = e.slug;
-    opt.textContent = `${e.title} · ${e.budget} Ⓝ`;
+    opt.textContent = `${e.title} · ${near(e.budget)} Ⓝ`;
     sel.append(opt);
   }
   sel.onchange = () => {
@@ -317,7 +356,7 @@ async function loadExamples() {
     $("title").value = e.title;
     $("details").value = e.details;
     $("test").value = e.test;
-    $("budget").value = e.budget;
+    $("budget").value = near(e.budget);
     updateLock();
   };
 }
@@ -349,6 +388,7 @@ async function postJob(ev) {
     });
     const hash = res.transaction.hash;
     const id = JSON.parse(atob(res.status.SuccessValue));
+    postStore.set({ ...(postStore.get() ?? {}), [id]: hash });
     note(`Posted job #${esc(id)}. ${txLink(hash, "post transaction")}`, "good");
     form.reset();
     updateLock();
