@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { judge, loadJobs, sha256 } from "./jobs.js";
-import { WORKER_FUND, accounts, balance, near, view, yocto } from "./near.js";
+import { WORKER_FUND, accounts, balance, listAllJobs, near, view, yocto } from "./near.js";
 
 const EXPECTED = {
   "01-slugify-digits": { state: "Paid", worker: "worker-bolt", price: "0.3" },
@@ -17,12 +17,7 @@ const check = (ok, message) => {
   if (!ok) failures++;
 };
 
-const chainJobs = [];
-for (let from = 0; ; from += 100) {
-  const page = await view(shop, "list_jobs", { from, limit: 100 });
-  chainJobs.push(...page);
-  if (page.length < 100) break;
-}
+const chainJobs = await listAllJobs(shop);
 console.log(`read ${chainJobs.length} jobs from ${shop}\n`);
 
 for (const job of loadJobs()) {
@@ -33,14 +28,14 @@ for (const job of loadJobs()) {
     continue;
   }
   const { status } = onChain;
-  check(BigInt(onChain.budget) === job.budget, `${job.slug} job ${onChain.id} budget is ${near(job.budget)} NEAR`);
+  check(onChain.budget === job.budget, `${job.slug} job ${onChain.id} budget is ${near(job.budget)} NEAR`);
   check(status.state === want.state, `${job.slug} job ${onChain.id} is ${want.state} (chain says ${status.state})`);
   if (want.state !== "Paid" || status.state !== "Paid") continue;
   check(status.worker === workers[want.worker], `${job.slug} paid to ${want.worker} (chain says ${status.worker})`);
   check(BigInt(status.price) === yocto(want.price), `${job.slug} price is ${want.price} NEAR (chain says ${near(status.price)})`);
-  const patch = readFileSync(new URL(`./sim/${job.slug}/${want.worker}.js`, import.meta.url), "utf8");
-  check(status.patch_sha256 === sha256(patch), `${job.slug} on-chain patch hash matches ${want.worker}'s patch`);
-  check(judge(job, patch).pass, `${job.slug} that patch passes the tests when re-run`);
+  const patch = { file: job.file, content: readFileSync(new URL(`./sim/${job.slug}/${want.worker}.js`, import.meta.url), "utf8") };
+  check(status.patch_sha256 === sha256(patch.content), `${job.slug} on-chain patch hash matches ${want.worker}'s patch`);
+  check((await judge(job.test, patch)).pass, `${job.slug} that patch passes the tests when re-run`);
 }
 
 const stats = await view(shop, "stats");

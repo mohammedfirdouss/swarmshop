@@ -7,6 +7,7 @@ export const ENV_FILE = new URL("../.env", import.meta.url).pathname;
 if (existsSync(ENV_FILE)) process.loadEnvFile(ENV_FILE);
 
 const RPC_URL = process.env.NEAR_RPC_URL ?? "https://test.rpc.fastnear.com";
+const FAUCET = "https://helper.nearprotocol.com/account";
 const CREDENTIALS = join(homedir(), ".near-credentials", "testnet");
 export const WORKERS = ["worker-ace", "worker-bolt", "worker-cid"];
 export const WORKER_FUND = 10n ** 24n;
@@ -24,11 +25,10 @@ export const yocto = (nearAmount) => {
 
 export function accounts() {
   const shop = process.env.SHOP_ACCOUNT;
-  const customer = process.env.CUSTOMER_ACCOUNT;
-  if (!shop || !customer) throw new Error("no SHOP_ACCOUNT/CUSTOMER_ACCOUNT in .env, run `npm run setup` first");
+  if (!shop) throw new Error("no SHOP_ACCOUNT in .env, run `npm run setup` first");
   return {
     shop,
-    customer,
+    customer: process.env.CUSTOMER_ACCOUNT,
     foreman: `foreman.${shop}`,
     workers: Object.fromEntries(WORKERS.map((w) => [w, `${w}.${shop}`])),
   };
@@ -54,6 +54,16 @@ export function signer(accountId) {
   return new Account(accountId, provider, loadOrCreateKey(accountId).toString());
 }
 
+export async function faucetAccount(accountId, publicKey) {
+  const res = await fetch(FAUCET, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ newAccountId: accountId, newAccountPublicKey: publicKey.toString() }),
+  });
+  if (!res.ok) throw new Error(`faucet refused ${accountId}: ${res.status} ${await res.text()}`);
+  for (let i = 0; i < 20 && !(await exists(accountId)); i++) await new Promise((r) => setTimeout(r, 1500));
+}
+
 export async function exists(accountId) {
   try {
     await provider.viewAccount({ accountId });
@@ -66,6 +76,15 @@ export async function exists(accountId) {
 export const balance = async (accountId) => BigInt((await provider.viewAccount({ accountId })).amount);
 
 export const view = (contractId, method, args = {}) => provider.callFunction({ contractId, method, args });
+
+export async function listAllJobs(shop) {
+  const jobs = [];
+  for (let from = 0; ; from += 100) {
+    const page = await view(shop, "list_jobs", { from, limit: 100 });
+    jobs.push(...page);
+    if (page.length < 100) return jobs;
+  }
+}
 
 export async function call(accountId, contractId, methodName, args, deposit = 0n) {
   const res = await signer(accountId).callFunctionRaw({ contractId, methodName, args, deposit });

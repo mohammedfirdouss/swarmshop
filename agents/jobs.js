@@ -1,14 +1,16 @@
 import { createHash } from "node:crypto";
-import { spawnSync } from "node:child_process";
+import { execFile } from "node:child_process";
 import { cpSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { promisify } from "node:util";
 import { yocto } from "./near.js";
 
 const ROOT = new URL("..", import.meta.url).pathname;
 export const SHOP_REPO = join(ROOT, "shop-repo");
 const JOBS = join(ROOT, "jobs");
 const TEST_TIMEOUT_MS = 30_000;
+export const PATCH_FILE = /^src\/[\w-]+\.js$/;
 
 export function loadJobs() {
   return readdirSync(JOBS).sort().map((slug) => {
@@ -18,27 +20,34 @@ export function loadJobs() {
       title: spec.title,
       details: spec.details,
       file: spec.file,
-      budget: yocto(spec.budget),
-      source: readFileSync(join(SHOP_REPO, spec.file), "utf8"),
-      acceptTest: join(JOBS, slug, "accept.test.js"),
+      budget: yocto(spec.budget).toString(),
+      test: readFileSync(join(JOBS, slug, "accept.test.js"), "utf8"),
     };
   });
 }
 
+export const readSources = () =>
+  Object.fromEntries(readdirSync(join(SHOP_REPO, "src")).sort().map((f) => [`src/${f}`, readFileSync(join(SHOP_REPO, "src", f), "utf8")]));
+
 export const sha256 = (content) => createHash("sha256").update(content).digest("hex");
 
-export function judge(job, content) {
-  const dir = mkdtempSync(join(tmpdir(), `swarmshop-${job.slug}-`));
+export async function judge(acceptanceTest, patch) {
+  const dir = mkdtempSync(join(tmpdir(), "swarmshop-"));
+  const started = Date.now();
   try {
     cpSync(SHOP_REPO, dir, { recursive: true });
-    writeFileSync(join(dir, job.file), content);
-    cpSync(job.acceptTest, join(dir, "test", "accept.test.js"));
-    const run = spawnSync(process.execPath, ["--test", "--test-reporter=dot"], {
+    writeFileSync(join(dir, patch.file), patch.content);
+    writeFileSync(join(dir, "test", "accept.test.js"), acceptanceTest);
+    const { NODE_TEST_CONTEXT, ...env } = process.env;
+    const run = await promisify(execFile)(process.execPath, ["--test", "--test-reporter=dot"], {
       cwd: dir,
-      encoding: "utf8",
+      env,
       timeout: TEST_TIMEOUT_MS,
-    });
-    return { pass: run.status === 0, output: `${run.stdout}${run.stderr}`.trim() };
+    }).then(
+      (out) => ({ pass: true, ...out }),
+      (err) => ({ pass: false, stdout: err.stdout ?? "", stderr: err.stderr ?? err.message }),
+    );
+    return { pass: run.pass, output: `${run.stdout}${run.stderr}`.trim(), ms: Date.now() - started };
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
