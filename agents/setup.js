@@ -1,8 +1,7 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { actions } from "near-api-js";
-import { ENV_FILE, WORKERS, WORKER_FUND, exists, loadOrCreateKey, near, provider, signer, yocto } from "./near.js";
+import { ENV_FILE, WORKERS, WORKER_FUND, exists, faucetAccount, loadOrCreateKey, near, provider, signer, yocto } from "./near.js";
 
-const FAUCET = "https://helper.nearprotocol.com/account";
 const WASM = new URL("../contract/target/near/swarmshop.wasm", import.meta.url).pathname;
 const FOREMAN_FUND = yocto("1");
 
@@ -16,14 +15,7 @@ async function fromFaucet(envKey, prefix) {
   const accountId = process.env[envKey] ?? `${prefix}-${Date.now().toString(36)}.testnet`;
   saveEnv(envKey, accountId);
   if (await exists(accountId)) return console.log(`ok      ${accountId}`), accountId;
-  const key = loadOrCreateKey(accountId);
-  const res = await fetch(FAUCET, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ newAccountId: accountId, newAccountPublicKey: key.getPublicKey().toString() }),
-  });
-  if (!res.ok) throw new Error(`faucet refused ${accountId}: ${res.status} ${await res.text()}`);
-  for (let i = 0; i < 20 && !(await exists(accountId)); i++) await new Promise((r) => setTimeout(r, 1500));
+  await faucetAccount(accountId, loadOrCreateKey(accountId).getPublicKey());
   console.log(`created ${accountId} from the faucet`);
   return accountId;
 }

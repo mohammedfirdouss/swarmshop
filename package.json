@@ -5,9 +5,11 @@
   "engines": { "node": ">=24" },
   "scripts": {
     "setup": "node agents/setup.js",
+    "start": "node agents/service.js",
     "shop": "node agents/shop.js",
     "verify": "node agents/verify.js",
-    "test": "node --test agents/live.test.js agents/pick.test.js"
+    "e2e": "node agents/e2e.js",
+    "test": "node --test agents/live.test.js agents/pick.test.js agents/board.test.js"
   },
   "dependencies": {
     "near-api-js": "7.3.1"
