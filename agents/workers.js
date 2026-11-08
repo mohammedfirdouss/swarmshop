@@ -4,17 +4,14 @@ import { WORKERS, near, yocto } from "./near.js";
 const PERSONAS = {
   "worker-ace": {
     simBidPercent: 70,
-    temperature: 0.2,
     style: "You are Ace, a careful senior engineer. You charge a fair price and only ship fixes you are sure of.",
   },
   "worker-bolt": {
     simBidPercent: 30,
-    temperature: 0.9,
     style: "You are Bolt, a fast and cheap freelancer. You bid low to win and write the quickest fix you can.",
   },
   "worker-cid": {
     simBidPercent: 50,
-    temperature: 0.5,
     style: "You are Cid, a steady mid-level engineer. You bid in the middle and fix the bug that was reported.",
   },
 };
@@ -57,7 +54,7 @@ function parsePatch(text) {
 }
 
 function liveWorker(name) {
-  const { style, temperature } = PERSONAS[name];
+  const { style } = PERSONAS[name];
   const baseUrl = process.env.LLM_BASE_URL ?? "https://cloud-api.near.ai/v1";
   const ask = async (prompt) => {
     const res = await fetch(`${baseUrl}/chat/completions`, {
@@ -65,7 +62,6 @@ function liveWorker(name) {
       headers: { "content-type": "application/json", authorization: `Bearer ${process.env.LLM_API_KEY}` },
       body: JSON.stringify({
         model: process.env.LLM_MODEL,
-        temperature,
         messages: [
           { role: "system", content: `${style} Reply with one JSON object and nothing else.` },
           { role: "user", content: prompt },
