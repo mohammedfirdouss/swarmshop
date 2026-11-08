@@ -36,7 +36,10 @@ export function accounts() {
 
 const credentialPath = (accountId) => join(CREDENTIALS, `${accountId}.json`);
 
+const envKeys = () => JSON.parse(process.env.NEAR_KEYS ?? "{}");
+
 export function loadOrCreateKey(accountId) {
+  if (envKeys()[accountId]) return KeyPair.fromString(envKeys()[accountId]);
   const path = credentialPath(accountId);
   if (existsSync(path)) return KeyPair.fromString(JSON.parse(readFileSync(path, "utf8")).private_key);
   const key = KeyPair.fromRandom("ed25519");
@@ -50,7 +53,7 @@ export function loadOrCreateKey(accountId) {
 }
 
 export function signer(accountId) {
-  if (!existsSync(credentialPath(accountId))) throw new Error(`no key for ${accountId} in ${CREDENTIALS}`);
+  if (!envKeys()[accountId] && !existsSync(credentialPath(accountId))) throw new Error(`no key for ${accountId} in NEAR_KEYS or ${CREDENTIALS}`);
   return new Account(accountId, provider, loadOrCreateKey(accountId).toString());
 }
 

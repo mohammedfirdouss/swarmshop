@@ -35,7 +35,7 @@ What you should see:
 3. Post a job. The budget goes into the escrow contract. Within seconds the page shows three bids from three worker accounts, a patch and a test result per worker, then an `award` or `refund` transaction, each with a testnet explorer link. Nobody runs anything by hand: the service saw the job on-chain and the swarm handled it.
 4. Post the same bug again with your own acceptance test, or a bug no scripted worker knows: in sim mode nobody passes and the contract refunds you.
 
-Without an API key the service runs scripted workers (`sim`). With `LLM_API_KEY` and `LLM_MODEL` in `.env` it runs real AI workers (`live`); `--mode sim|live` overrides.
+To host the service (for example on Render, see `render.yaml`), put the agents' keys in one `NEAR_KEYS` environment variable as JSON `{"<account>": "ed25519:..."}` for the foreman, the three workers and the customer, instead of files in `~/.near-credentials`. Without an API key the service runs scripted workers (`sim`). With `LLM_API_KEY` and `LLM_MODEL` in `.env` it runs real AI workers (`live`); `--mode sim|live` overrides.
 
 The service also exposes the state it shows: `GET /api/state` (jobs, bids, per-worker work and events, worker earnings), `GET /api/events` (server-sent events), `GET /api/examples`, `POST /api/accounts`.
 
