@@ -57,7 +57,7 @@ npm run e2e                 # starts the service, posts 2 jobs over RPC, waits f
 - Job 4: nobody passes, so the customer gets the full 0.5 NEAR back.
 - Job 5 (semver precedence): the two quick fixes fail the pre-release rules, so ace (1.4 NEAR) wins.
 
-A v2 shop that has run all of the above is live at `v2.swarmshop-mw7wjo67.testnet`. The v1 shops are `swarmshop-mw7vilrm.testnet` (scripted workers) and `swarmshop-mw7x22yf.testnet` (real AI workers, demo video).
+The shop from the demo video is live at `swarmshop.testnet` (real AI workers; job #0 is the one on screen). `v2.swarmshop-mw7wjo67.testnet` has run the scripted proof and several live jobs.
 
 ## Modes
 
