@@ -2,7 +2,7 @@
 
 A bug-fixing shop run by a swarm of AI agents on NEAR. A customer pays to have a bug fixed. Worker agents bid for the job from their own NEAR accounts and race to fix it. A foreman agent runs the tests and pays the cheapest fix that passes. The money sits in a contract the whole time, so nobody has to trust the agents with it.
 
-Built for NEAR HACKATHON (tracks: AI Swarms, Autonomous Business, Agent Economy). Runs on NEAR testnet. Demo video: https://x.com/iamfirdouss/status/2119513187162755505
+Built for NEAR HACKATHON (tracks: AI Swarms, Autonomous Business, Agent Economy). Runs on NEAR testnet. Demo video: https://x.com/iamfirdouss/status/2119513187162755505. Live demo: https://swarmshop.onrender.com (free tier, so the first load can take up to a minute to wake).
 
 ## The problem
 
