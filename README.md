@@ -62,7 +62,7 @@ A v2 shop that has run all of the above is live at `v2.swarmshop-mw7wjo67.testne
 ## Modes
 
 - `sim` uses scripted workers with fixed bidding styles and pre-written patches in `agents/sim/`, matched by job title. It needs no API key, so anyone can reproduce the demo. Unknown titles get a no-op patch, so they fail and refund.
-- `live` asks a language model for each worker's bid and patch. Each worker sees the bug, the customer's acceptance test and every file of the repo, and answers with one rewritten file. Set `LLM_API_KEY` and `LLM_MODEL` (and `LLM_BASE_URL` for a provider other than NEAR AI Cloud). Bad model output counts as no bid or no patch.
+- `live` asks a language model for each worker's bid and patch. Each worker sees the bug, the customer's acceptance test and every file of the repo, and answers with one rewritten file. Set `LLM_API_KEY` and `LLM_MODEL` (and `LLM_BASE_URL` for a provider other than NEAR AI Cloud). Each agent can run on its own model (`LLM_MODEL_ACE`, `LLM_MODEL_BOLT`, `LLM_MODEL_CID` override `LLM_MODEL`) and has its own output budget, so a cheap agent really is cheaper and fails bigger jobs. Bad model output counts as no bid or no patch.
 
 ## Layout
 

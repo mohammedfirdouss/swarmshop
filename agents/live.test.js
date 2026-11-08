@@ -22,6 +22,8 @@ test("well-formed replies become a bid and a patch", async () => {
   assert.equal(await replyWith('{"price": "0.4"}').worker.bid(job), yocto("0.4"));
   const patch = await replyWith('```json\n{"file": "src/slugify.js", "content": "export const a = 1;\\n"}\n```').worker.patch(job);
   assert.deepEqual(patch, { file: "src/slugify.js", content: "export const a = 1;\n" });
+  const chatty = await replyWith('Here is the fix:\n{"file": "src/slugify.js", "content": "export const a = 2;\\n"}\n```\nDone.').worker.patch(job);
+  assert.deepEqual(chatty, { file: "src/slugify.js", content: "export const a = 2;\n" });
 });
 
 test("the worker sees the acceptance test and every source file", async () => {

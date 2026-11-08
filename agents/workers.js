@@ -7,16 +7,19 @@ export const PERSONAS = {
     handle: "Ace",
     persona: "Careful senior engineer. Fair price, only ships fixes it is sure of.",
     simBidPercent: 70,
+    maxTokens: 4000,
   },
   "worker-bolt": {
     handle: "Bolt",
     persona: "Fast, cheap freelancer. Bids low to win and writes the quickest fix possible.",
     simBidPercent: 30,
+    maxTokens: 600,
   },
   "worker-cid": {
     handle: "Cid",
     persona: "Steady mid-level engineer. Bids in the middle and fixes exactly the bug reported.",
     simBidPercent: 50,
+    maxTokens: 2000,
   },
 };
 
@@ -43,7 +46,7 @@ function describe(job) {
 }
 
 function parseJson(text) {
-  const body = text.trim().replace(/^```(?:json)?\n([\s\S]*)\n```$/, "$1");
+  const body = text.slice(text.indexOf("{"), text.lastIndexOf("}") + 1);
   try {
     const value = JSON.parse(body);
     return value && typeof value === "object" && !Array.isArray(value) ? value : null;
@@ -66,14 +69,16 @@ export function parsePatch(text) {
 }
 
 function liveWorker(name) {
-  const { handle, persona } = PERSONAS[name];
+  const { handle, persona, maxTokens } = PERSONAS[name];
   const baseUrl = process.env.LLM_BASE_URL ?? "https://cloud-api.near.ai/v1";
+  const model = process.env[`LLM_MODEL_${handle.toUpperCase()}`] ?? process.env.LLM_MODEL;
   const ask = async (prompt) => {
     const res = await fetch(`${baseUrl}/chat/completions`, {
       method: "POST",
       headers: { "content-type": "application/json", authorization: `Bearer ${process.env.LLM_API_KEY}` },
       body: JSON.stringify({
-        model: process.env.LLM_MODEL,
+        model,
+        max_tokens: maxTokens,
         messages: [
           { role: "system", content: `You are ${handle}, a freelance programmer. ${persona} Reply with one JSON object and nothing else.` },
           { role: "user", content: prompt },
