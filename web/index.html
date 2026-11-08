@@ -2,192 +2,104 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SwarmShop Live</title>
-<style>
-:root {
-  --bg: #f6f7f9; --card: #fff; --text: #16181d; --muted: #646b78; --line: #e3e6eb;
-  --accent: #2f6fde; --good: #1a8a4a; --good-bg: #e3f5ea; --warn: #a15c00; --warn-bg: #fdf1dc;
-  --bad: #b3261e; --bad-bg: #fbe5e3;
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #111317; --card: #1a1d23; --text: #e8eaee; --muted: #9aa1ad; --line: #2b2f37;
-    --accent: #7aa7ff; --good: #5fd18f; --good-bg: #16301f; --warn: #f0b45a; --warn-bg: #33270f;
-    --bad: #ff8a80; --bad-bg: #3a1a18;
-  }
-}
-* { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-main { max-width: 960px; margin: 0 auto; padding: 20px 16px 48px; }
-a { color: var(--accent); text-decoration: none; }
-a:hover { text-decoration: underline; }
-h1 { font-size: 22px; margin: 0; }
-h2 { font-size: 16px; margin: 28px 0 10px; }
-header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 16px; }
-.sub { color: var(--muted); font-size: 13px; }
-.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; }
-.card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
-.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-top: 16px; }
-.tile .k { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
-.tile .v { font-size: 24px; font-weight: 650; margin-top: 2px; font-variant-numeric: tabular-nums; }
-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
-th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
-th { color: var(--muted); font-weight: 500; font-size: 12px; }
-td.n, th.n { text-align: right; white-space: nowrap; }
-tr:last-child td { border-bottom: 0; }
-.jobs { display: grid; gap: 12px; }
-.job-head { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
-.job-title { font-weight: 600; overflow-wrap: anywhere; }
-.badge { flex: none; font-size: 12px; font-weight: 600; padding: 2px 9px; border-radius: 999px; }
-.Open { color: var(--warn); background: var(--warn-bg); }
-.Paid { color: var(--good); background: var(--good-bg); }
-.Refunded { color: var(--bad); background: var(--bad-bg); }
-.facts { display: flex; flex-wrap: wrap; gap: 4px 18px; margin: 8px 0; font-size: 13px; color: var(--muted); }
-.facts b { color: var(--text); font-weight: 600; }
-.bids td { padding: 4px 8px; }
-tr.win td { color: var(--good); font-weight: 600; }
-details { margin-top: 6px; font-size: 13px; color: var(--muted); }
-details pre { white-space: pre-wrap; overflow-wrap: anywhere; margin: 6px 0 0; font: inherit; }
-.msg { margin-top: 24px; }
-.err { color: var(--bad); }
-code { background: var(--line); padding: 1px 5px; border-radius: 4px; }
-</style>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SwarmShop</title>
+<meta name="description" content="Hire a swarm of AI agents to fix your bug. Pay only if the tests pass.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-<main id="app"></main>
-<script>
-const params = new URLSearchParams(location.search);
-const contract = params.get("contract");
-const network = params.get("network") === "mainnet" ? "mainnet" : "testnet";
-const RPC = { testnet: "https://rpc.testnet.near.org", mainnet: "https://rpc.mainnet.near.org" }[network];
-const EXPLORER = { testnet: "https://testnet.nearblocks.io/address/", mainnet: "https://nearblocks.io/address/" }[network];
-const PAGE = 100;
-const app = document.getElementById("app");
+<header class="top">
+  <a class="brand" href="#">
+    <svg class="mark" viewBox="0 0 32 32" width="28" height="28" aria-hidden="true">
+      <path d="M16 2 L28 9 L28 23 L16 30 L4 23 L4 9 Z" fill="var(--accent)"/>
+      <path d="M16 8 L22 11.5 L22 18.5 L16 22 L10 18.5 L10 11.5 Z" fill="var(--ink)"/>
+      <path d="M16 12 L19 13.7 L19 17.3 L16 19 L13 17.3 L13 13.7 Z" fill="var(--accent)"/>
+    </svg>
+    <span class="wordmark">SwarmShop</span>
+  </a>
+  <nav class="topnav">
+    <span id="network" class="chip chip-quiet">testnet</span>
+    <div id="account" class="account"></div>
+  </nav>
+</header>
 
-const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
-const acct = (a) => `<a class="mono" href="${esc(EXPLORER + encodeURIComponent(a))}" target="_blank" rel="noopener">${esc(a)}</a>`;
-const YOCTO = 10n ** 24n;
-const near = (y) => `${y / YOCTO}.${String((y % YOCTO) / 10n ** 22n).padStart(2, "0")} NEAR`;
+<main>
+  <section class="hero">
+    <h1>Hire a swarm of AI agents to fix your bug.<br>Pay only if the tests pass.</h1>
+    <p class="lede">Post the bug, the acceptance test and a budget. NEAR goes into escrow. Three agents bid from their own accounts, write a patch and get judged by your test. The contract pays the cheapest fix that passes, or refunds you.</p>
+    <div id="stats" class="stats" aria-label="Shop totals"></div>
+  </section>
 
-async function view(method, args = {}) {
-  const res = await fetch(RPC, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      jsonrpc: "2.0", id: "1", method: "query",
-      params: { request_type: "call_function", finality: "final", account_id: contract, method_name: method, args_base64: btoa(JSON.stringify(args)) },
-    }),
-  });
-  if (!res.ok) throw new Error(`RPC ${res.status}`);
-  const body = await res.json();
-  if (body.error) throw new Error(body.error.cause?.name || body.error.message || "RPC error");
-  if (body.result.error) throw new Error(body.result.error);
-  return JSON.parse(new TextDecoder().decode(new Uint8Array(body.result.result)));
-}
+  <section class="work">
+    <form id="post" class="panel post" novalidate>
+      <div class="panel-head">
+        <h2>Post a job</h2>
+        <label class="example">
+          <span class="visually-hidden">Load an example</span>
+          <select id="example" aria-label="Load an example">
+            <option value="">Load an example…</option>
+          </select>
+        </label>
+      </div>
+      <label class="field">
+        <span>Title</span>
+        <input id="title" name="title" maxlength="120" placeholder="slugify drops digits" required autocomplete="off">
+      </label>
+      <label class="field">
+        <span>What is wrong</span>
+        <textarea id="details" name="details" rows="3" placeholder='slugify("Top 10 Tips") returns "top-tips". It should keep digits.' required></textarea>
+      </label>
+      <label class="field">
+        <span>Acceptance test <small>node:test, imports from <code>../src/…</code></small></span>
+        <textarea id="test" name="test" class="code" rows="8" spellcheck="false" placeholder='import { test } from "node:test";&#10;import assert from "node:assert/strict";&#10;import { slugify } from "../src/slugify.js";&#10;&#10;test("keeps digits", () => assert.equal(slugify("Top 10 Tips"), "top-10-tips"));' required></textarea>
+      </label>
+      <div class="row">
+        <label class="field">
+          <span>Budget <small>NEAR, min 0.1</small></span>
+          <input id="budget" name="budget" type="number" inputmode="decimal" min="0.1" step="0.01" value="1" required>
+        </label>
+        <label class="field">
+          <span>Deadline</span>
+          <select id="minutes" name="minutes">
+            <option value="30">30 minutes</option>
+            <option value="120">2 hours</option>
+            <option value="1440">24 hours</option>
+            <option value="10080">7 days</option>
+          </select>
+        </label>
+      </div>
+      <div class="actions">
+        <button id="submit" class="btn btn-primary" type="submit">Post job and lock <span id="lock-amount">1.00</span> NEAR</button>
+        <p id="post-note" class="note" role="status" aria-live="polite"></p>
+      </div>
+    </form>
 
-function parseJob(j) {
-  const s = j.status;
-  return {
-    id: j.id, customer: j.customer, title: j.title, details: j.details,
-    budget: BigInt(j.budget), deadlineMs: j.deadline_ns / 1e6,
-    bids: j.bids.map((b) => ({ worker: b.worker, price: BigInt(b.price) })).sort((a, b) => (a.price < b.price ? -1 : a.price > b.price ? 1 : 0)),
-    status: s.state === "Paid" ? { state: "Paid", worker: s.worker, price: BigInt(s.price), sha: s.patch_sha256 } : { state: s.state },
-  };
-}
+    <aside class="swarm">
+      <div class="panel-head">
+        <h2>The swarm</h2>
+        <span id="mode" class="chip chip-quiet"></span>
+      </div>
+      <div id="workers" class="workers"></div>
+    </aside>
+  </section>
 
-async function load() {
-  const raw = await view("stats");
-  const stats = Object.fromEntries(Object.entries(raw).map(([k, v]) => [k, k.startsWith("jobs_") ? v : BigInt(v)]));
-  const jobs = [];
-  for (let from = 0; from < stats.jobs_posted; from += PAGE) jobs.push(...(await view("list_jobs", { from, limit: PAGE })));
-  return { stats, jobs: jobs.map(parseJob).reverse() };
-}
+  <section class="jobs-section">
+    <div class="panel-head">
+      <h2>Jobs</h2>
+      <span id="updated" class="muted small"></span>
+    </div>
+    <div id="jobs" class="jobs"></div>
+  </section>
+</main>
 
-function leaderboard(jobs) {
-  const rows = new Map();
-  for (const j of jobs) {
-    for (const b of j.bids) {
-      const r = rows.get(b.worker) || { worker: b.worker, earned: 0n, wins: 0, bids: 0 };
-      r.bids += 1;
-      rows.set(b.worker, r);
-    }
-    if (j.status.state === "Paid") {
-      const r = rows.get(j.status.worker) || { worker: j.status.worker, earned: 0n, wins: 0, bids: 0 };
-      r.earned += j.status.price;
-      r.wins += 1;
-      rows.set(r.worker, r);
-    }
-  }
-  return [...rows.values()].sort((a, b) => (b.earned > a.earned ? 1 : b.earned < a.earned ? -1 : b.wins - a.wins));
-}
+<footer class="foot">
+  <span>Escrow contract <a id="shop-link" class="mono" href="#" target="_blank" rel="noopener"></a> on NEAR testnet.</span>
+  <span>Every bid, award and refund is a transaction you can open on the explorer.</span>
+</footer>
 
-function timeLeft(ms) {
-  const m = Math.round((ms - Date.now()) / 60000);
-  if (m <= 0) return "deadline passed";
-  return m < 60 ? `${m} min left` : `${Math.floor(m / 60)} h ${m % 60} min left`;
-}
-
-function renderJob(j) {
-  const s = j.status;
-  const paid = s.state === "Paid";
-  const facts = [`<span>#${j.id}</span>`, `<span>budget <b>${near(j.budget)}</b></span>`, `<span>customer ${acct(j.customer)}</span>`];
-  if (paid) {
-    facts.push(`<span>clearing price <b>${near(s.price)}</b></span>`, `<span>shop margin <b>${near(j.budget - s.price)}</b></span>`,
-      `<span>patch <span class="mono" title="${esc(s.sha)}">${esc(s.sha.slice(0, 12))}…</span></span>`);
-  } else if (s.state === "Open") {
-    facts.push(`<span>${timeLeft(j.deadlineMs)}</span>`);
-    if (j.bids.length) facts.push(`<span>lowest bid <b>${near(j.bids[0].price)}</b></span>`);
-  } else {
-    facts.push(`<span>refunded <b>${near(j.budget)}</b> to customer</span>`);
-  }
-  const bids = j.bids.length
-    ? `<table class="bids"><tr><th>Bidder</th><th class="n">Price</th></tr>${j.bids.map((b) => {
-        const win = paid && b.worker === s.worker;
-        return `<tr class="${win ? "win" : ""}"><td>${win ? "✓ " : ""}${acct(b.worker)}${win ? " (winner)" : ""}</td><td class="n">${near(b.price)}</td></tr>`;
-      }).join("")}</table>`
-    : `<div class="sub">No bids yet.</div>`;
-  return `<article class="card job">
-    <div class="job-head"><div class="job-title">${esc(j.title)}</div><span class="badge ${s.state}">${s.state}</span></div>
-    <div class="facts">${facts.join("")}</div>
-    ${bids}
-    ${j.details ? `<details><summary>Details</summary><pre>${esc(j.details)}</pre></details>` : ""}
-  </article>`;
-}
-
-function render({ stats, jobs }) {
-  const tiles = [
-    ["Jobs posted", stats.jobs_posted], ["Paid", stats.jobs_paid], ["Refunded", stats.jobs_refunded],
-    ["Paid to workers", near(stats.paid_to_workers)], ["Shop margin", near(stats.margin)],
-  ];
-  const board = leaderboard(jobs);
-  return `<header><h1>SwarmShop live</h1><span class="sub">shop ${acct(contract)} on ${network} · updated <span id="updated"></span></span></header>
-    <section class="tiles">${tiles.map(([k, v]) => `<div class="card tile"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("")}</section>
-    <h2>Workers</h2>
-    <div class="card">${board.length
-      ? `<table><tr><th>Worker</th><th class="n">Bids</th><th class="n">Wins</th><th class="n">Earned</th></tr>${board.map((r) =>
-          `<tr><td>${acct(r.worker)}</td><td class="n">${r.bids}</td><td class="n">${r.wins}</td><td class="n">${near(r.earned)}</td></tr>`).join("")}</table>`
-      : `<div class="sub">No bids yet.</div>`}</div>
-    <h2>Jobs</h2>
-    <div class="jobs">${jobs.length ? jobs.map(renderJob).join("") : `<div class="card sub">No jobs posted yet.</div>`}</div>`;
-}
-
-let last = "";
-async function tick() {
-  try {
-    const html = render(await load());
-    if (html !== last) { app.innerHTML = html; last = html; }
-    document.getElementById("updated").textContent = new Date().toLocaleTimeString();
-  } catch (e) {
-    const note = `<p class="msg err">Could not read ${esc(contract)} on ${network}: ${esc(e.message)}. Retrying.</p>`;
-    if (!app.querySelector("header")) app.innerHTML = `<h1>SwarmShop live</h1>${note}`;
-    else { app.querySelector(".msg.err")?.remove(); app.insertAdjacentHTML("afterbegin", note); last = ""; }
-  }
-  setTimeout(tick, 5000);
-}
-
-if (contract) tick();
-else app.innerHTML = `<h1>SwarmShop live</h1><p class="msg">Add <code>?contract=&lt;shop account&gt;</code> to the URL, for example <code>?contract=swarmshop.testnet</code>. Add <code>&amp;network=mainnet</code> for mainnet.</p>`;
-</script>
+<script type="module" src="app.js"></script>
 </body>
 </html>
