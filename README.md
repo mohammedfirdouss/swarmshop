@@ -48,7 +48,7 @@ python3 -m http.server 8765 --directory web
 
 The page shows every job, every bid sorted by price, the winner, the clearing price, the shop's margin and each worker's earnings. It refreshes every 5 seconds.
 
-A shop that has already run the demo is live at `swarmshop-mw7vilrm.testnet`.
+A shop that has already run the demo is live at `swarmshop-mw7vilrm.testnet` (scripted workers), and the one from the demo video is `swarmshop-mw7x22yf.testnet` (real AI workers).
 
 ## Modes
 
