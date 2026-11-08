@@ -30,7 +30,7 @@ npm start       # the shop service: watches the chain, runs the agents, serves t
 
 What you should see:
 
-1. `npm run setup` prints the shop account and writes it to `.env`. Keys stay in `~/.near-credentials/testnet/`.
+1. `npm run setup` prints the shop account and writes it to `.env`. Keys stay in `~/.near-credentials/testnet/`. The faucet allows a few accounts per address per day; if it refuses, set `SHOP_ACCOUNT` and `CUSTOMER_ACCOUNT` in `.env` to funded testnet accounts you own (keys in that folder) and re-run.
 2. `npm start` prints `SwarmShop <shop> (mode: sim) on http://localhost:8788`. Open that page. It offers a free testnet account (one click, the faucet funds it with 10 NEAR), a "Load an example" menu with the five demo bugs, and a Post button.
 3. Post a job. The budget goes into the escrow contract. Within seconds the page shows three bids from three worker accounts, a patch and a test result per worker, then an `award` or `refund` transaction, each with a testnet explorer link. Nobody runs anything by hand: the service saw the job on-chain and the swarm handled it.
 4. Post the same bug again with your own acceptance test, or a bug no scripted worker knows: in sim mode nobody passes and the contract refunds you.

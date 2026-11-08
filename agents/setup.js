@@ -15,7 +15,11 @@ async function fromFaucet(envKey, prefix) {
   const accountId = process.env[envKey] ?? `${prefix}-${Date.now().toString(36)}.testnet`;
   saveEnv(envKey, accountId);
   if (await exists(accountId)) return console.log(`ok      ${accountId}`), accountId;
-  await faucetAccount(accountId, loadOrCreateKey(accountId).getPublicKey());
+  try {
+    await faucetAccount(accountId, loadOrCreateKey(accountId).getPublicKey());
+  } catch (err) {
+    throw new Error(`${err.message}\nThe faucet allows a few accounts per address per day. To use a testnet account you already own, put it in .env as ${envKey}=<account> with its key at ~/.near-credentials/testnet/<account>.json, then re-run.`);
+  }
   console.log(`created ${accountId} from the faucet`);
   return accountId;
 }
