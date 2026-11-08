@@ -22,6 +22,7 @@ export function loadJobs() {
       file: spec.file,
       budget: yocto(spec.budget).toString(),
       test: readFileSync(join(JOBS, slug, "accept.test.js"), "utf8"),
+      source: readFileSync(join(SHOP_REPO, spec.file), "utf8"),
     };
   });
 }

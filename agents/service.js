@@ -4,7 +4,7 @@ import { extname, join, normalize } from "node:path";
 import { parseArgs } from "node:util";
 import { KeyPair } from "near-api-js";
 import { loadJobs } from "./jobs.js";
-import { WORKERS, accounts, balance, faucetAccount, listAllJobs, view } from "./near.js";
+import { WORKERS, accounts, balance, faucetAccount, listAllJobs, signer, view } from "./near.js";
 import { Board, runSwarm } from "./swarm.js";
 import { PERSONAS, makeWorkers } from "./workers.js";
 
@@ -64,11 +64,22 @@ function state() {
   };
 }
 
+const GUEST_FUND = 3n * 10n ** 24n;
+
 async function createAccount() {
   const key = KeyPair.fromRandom("ed25519");
-  const accountId = `swarmshop-customer-${Date.now().toString(36)}.testnet`;
-  await faucetAccount(accountId, key.getPublicKey());
-  return { accountId, privateKey: key.toString() };
+  const stamp = Date.now().toString(36);
+  try {
+    const accountId = `swarmshop-customer-${stamp}.testnet`;
+    await faucetAccount(accountId, key.getPublicKey());
+    return { accountId, privateKey: key.toString() };
+  } catch (err) {
+    const sponsor = process.env.CUSTOMER_ACCOUNT;
+    if (!sponsor) throw err;
+    const accountId = `guest-${stamp}.${sponsor}`;
+    await signer(sponsor).createAccount({ newAccountId: accountId, publicKey: key.getPublicKey(), nearToTransfer: GUEST_FUND });
+    return { accountId, privateKey: key.toString(), sponsor };
+  }
 }
 
 function json(res, status, body) {
